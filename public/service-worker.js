@@ -5,8 +5,8 @@ const FILES_TO_CACHE = [
     "/",
     "/index.html",
     "/index.js",
-    "/manifest.webmanifest",
-    "/styles.css",
+    // "/manifest.webmanifest",
+    // "/styles.css",
     "/icons/icon-192x192.png",
     "/icons/icon-512x512.png"
 ];
@@ -53,6 +53,7 @@ self.addEventListener("fetch", function(event) {
 
         event.respondWith(
             caches.open(DATA_CACHE_NAME).then(cache => {
+                // If it's successful put it in our cache
                 return fetch(event.request)
                     .then(response => {
                         if (response.status === 200) {
@@ -61,6 +62,7 @@ self.addEventListener("fetch", function(event) {
 
                         return response;
                     })
+                    // If not successful, then pull it from our cache
                     .catch(err => {
                         return cache.match(event.request);
                     });
@@ -78,8 +80,8 @@ self.addEventListener("fetch", function(event) {
     // This code allows the page to be accessible offline
     event.respondWith(
         caches.open(CACHE_NAME).then(cache => {
-            return cache.match(e.request).then(response => {
-                return response || fetch(e.request);
+            return cache.match(event.request).then(response => {
+                return response || fetch(event.request);
             });
         })
     );
