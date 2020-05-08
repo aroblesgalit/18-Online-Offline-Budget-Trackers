@@ -6,18 +6,18 @@ const FILES_TO_CACHE = [
     "/index.html",
     "/index.js",
     "/manifest.webmanifest",
-    "/style.css",
+    "/styles.css",
     "/icons/icon-192x192.png",
     "/icons/icon-512x512.png"
 ];
 
-const CACHE_NAME = "static-cache-v2";
-const DATA_CACHE_NAME = "data-cache-v1";
+const CACHE_NAME = "my-site-cache-v2";
+const DATA_CACHE_NAME = "data-cache-v2";
 
 // Install and register service worker
-self.addEventListener("install", e => {
-    e.waitUntil(
-        caches.open(CACHE_NAME).then(cache => {
+self.addEventListener("install", function(event) {
+    event.waitUntil(
+        caches.open(CACHE_NAME).then(function(cache) {
             console.log("Your files were pre-cached successfully!");
             return cache.addAll(FILES_TO_CACHE);
         })
@@ -26,13 +26,57 @@ self.addEventListener("install", e => {
     self.skipWaiting();
 });
 
+// Activation
+self.addEventListener("activate", function(event) {
+    event.waitUntil(
+        caches.keys().then(keyList => {
+            return Promise.all(
+                keyList.map(key => {
+                    if (key !== CACHE_NAME && key != DATA_CACHE_NAME) {
+                        console.log("Removing old cache data", key);
+                        return caches.delete(key);
+                    }
+                })
+            )
+        })
+    );
+
+    self.clients.claim();
+})
+
 // Enable the service worker to intercept network requests
-self.addEventListener("fetch", e => {
+self.addEventListener("fetch", function(event) {
     // Handle requests
+    // Cache repsonses for requests for data
+    if (event.request.url.includes("/api/")) {
+        console.log("[Service Worker] Fetch (data)", event.request.url);
+
+        event.respondWith(
+            caches.open(DATA_CACHE_NAME).then(cache => {
+                return fetch(event.request)
+                    .then(response => {
+                        if (response.status === 200) {
+                            cache.put(e.request.url, response.clone());
+                        }
+
+                        return response;
+                    })
+                    .catch(err => {
+                        return cache.match(event.request);
+                    });
+            })
+            .catch(err => {
+                console.log(err);
+            })
+        );
+
+        return;
+    }
+
     // Serve static files from the cache.
     // Proceed with a network request when the resource is not in the cache
     // This code allows the page to be accessible offline
-    e.respondWith(
+    event.respondWith(
         caches.open(CACHE_NAME).then(cache => {
             return cache.match(e.request).then(response => {
                 return response || fetch(e.request);
