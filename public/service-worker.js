@@ -24,4 +24,19 @@ self.addEventListener("install", e => {
     );
 
     self.skipWaiting();
-})
+});
+
+// Enable the service worker to intercept network requests
+self.addEventListener("fetch", e => {
+    // Handle requests
+    // Serve static files from the cache.
+    // Proceed with a network request when the resource is not in the cache
+    // This code allows the page to be accessible offline
+    e.respondWith(
+        caches.open(CACHE_NAME).then(cache => {
+            return cache.match(e.request).then(response => {
+                return response || fetch(e.request);
+            });
+        })
+    );
+});
