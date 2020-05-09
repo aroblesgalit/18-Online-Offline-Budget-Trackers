@@ -5,9 +5,32 @@ fetch("/api/transaction")
   .then(response => {
     return response.json();
   })
-  .then(data => {
+  .then(async function (data) {
+
+    const indexedDB = await getIndexedDB();
+    console.log(indexedDB);
+
+    // Make a post request
+    fetch("/api/transaction/bulk", {
+      method: "POST",
+      body: JSON.stringify(indexedDB),
+      headers: {
+        Accept: "application/json, text/plain, */*",
+        "Content-Type": "application/json"
+      }
+    }).then(response => {
+      return response.json();
+    })
+      .then(data => {
+        console.log("Database successfull added!");
+        // Clear out indexedDB
+        clearIndexedDB();
+      })
+      .catch(err => {
+        console.log("Still no database connection.")
+      })
     // save db data on global variable
-    transactions = data;
+    transactions = [...indexedDB.reverse(), ...data];
 
     populateTotal();
     populateTable();
@@ -156,16 +179,16 @@ document.querySelector("#sub-btn").onclick = function () {
 function saveRecord(expenseItem) {
   // console.log(expenseItem);
   const request = window.indexedDB.open("expense", 1);
-      
+
   // Create schema
   request.onupgradeneeded = event => {
     const db = event.target.result;
 
-   // Create a expense object store with a listID keyPath that can be used to query on.
-   const expenseStore = db.createObjectStore("expense", {keyPath: "listID"});
-   // Create an index for "column" to query on.
-   expenseStore.createIndex("nameIndex", "name");
-   expenseStore.createIndex("valueIndex", "value");
+    // Create a expense object store with a listID keyPath that can be used to query on.
+    const expenseStore = db.createObjectStore("expense", { keyPath: "date" });
+    // Create an index for "column" to query on.
+    expenseStore.createIndex("nameIndex", "name");
+    expenseStore.createIndex("valueIndex", "value");
   }
 
   // Create variables for a new transaction on the database, objectStore and the index.
@@ -174,14 +197,68 @@ function saveRecord(expenseItem) {
     // console.log(db);
     const transaction = db.transaction(["expense"], "readwrite");
     const expenseStore = transaction.objectStore("expense");
-    const nameIndex = expenseStore.index("nameIndex");
-    const valueIndex = expenseStore.index("valueIndex");
+    // const nameIndex = expenseStore.index("nameIndex");
+    // const valueIndex = expenseStore.index("valueIndex");
 
     // Add expense item to our expenseStore
-    expenseStore.add({ listID: expenseItem.date, name: expenseItem.name, value: expenseItem.value });
-
-    // expenseStore.getAll().onsuccess = event => {
-    //   console.log(event.target.result);
-    // }
+    expenseStore.add({ date: expenseItem.date, name: expenseItem.name, value: expenseItem.value });
   };
 };
+
+function clearIndexedDB() {
+  const request = window.indexedDB.open("expense", 1);
+
+  // Create schema
+  request.onupgradeneeded = event => {
+    const db = event.target.result;
+
+    // Create a expense object store with a listID keyPath that can be used to query on.
+    const expenseStore = db.createObjectStore("expense", { keyPath: "date" });
+    // Create an index for "column" to query on.
+    expenseStore.createIndex("nameIndex", "name");
+    expenseStore.createIndex("valueIndex", "value");
+  }
+
+  request.onsuccess = () => {
+    const db = request.result;
+
+    const transaction = db.transaction(["expense"], "readwrite");
+    const expenseStore = transaction.objectStore("expense");
+
+    const clearRequest = expenseStore.clear();
+    clearRequest.onsuccess = () => {
+      console.log("IndexedDB has been cleared!");
+    }
+  }
+}
+
+// Function to grab data from IndexedDB
+function getIndexedDB() {
+  return new Promise((resolve, reject) => {
+    const request = window.indexedDB.open("expense", 1);
+
+    // Create schema
+    request.onupgradeneeded = event => {
+      const db = event.target.result;
+
+      // Create a expense object store with a listID keyPath that can be used to query on.
+      const expenseStore = db.createObjectStore("expense", { keyPath: "date" });
+      // Create an index for "column" to query on.
+      expenseStore.createIndex("nameIndex", "name");
+      expenseStore.createIndex("valueIndex", "value");
+    }
+
+    request.onsuccess = () => {
+      const db = request.result;
+
+      const transaction = db.transaction(["expense"], "readwrite");
+      const expenseStore = transaction.objectStore("expense");
+
+      const getRequest = expenseStore.getAll();
+      getRequest.onsuccess = () => {
+        return resolve(getRequest.result);
+      }
+    }
+  })
+}
+
