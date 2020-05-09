@@ -152,26 +152,26 @@ document.querySelector("#sub-btn").onclick = function () {
   sendTransaction(false);
 };
 
+// Function to save record into IndexedDB
 function saveRecord(expenseItem) {
-  console.log(expenseItem);
+  // console.log(expenseItem);
   const request = window.indexedDB.open("expense", 1);
       
   // Create schema
   request.onupgradeneeded = event => {
     const db = event.target.result;
-   // CODE HERE
 
    // Create a expense object store with a listID keyPath that can be used to query on.
    const expenseStore = db.createObjectStore("expense", {keyPath: "listID"});
-   // Create an index for a "column" you'd like to query on. ie: due-date
+   // Create an index for "column" to query on.
    expenseStore.createIndex("nameIndex", "name");
    expenseStore.createIndex("valueIndex", "value");
   }
 
-  // Create variables for a new transaction on your database, objectStore and the index you created.
+  // Create variables for a new transaction on the database, objectStore and the index.
   request.onsuccess = () => {
     const db = request.result;
-    console.log(db);
+    // console.log(db);
     const transaction = db.transaction(["expense"], "readwrite");
     const expenseStore = transaction.objectStore("expense");
     const nameIndex = expenseStore.index("nameIndex");
@@ -179,20 +179,9 @@ function saveRecord(expenseItem) {
 
     // Add expense item to our expenseStore
     expenseStore.add({ listID: expenseItem.date, name: expenseItem.name, value: expenseItem.value });
-  //   toDoListStore.add({ listID: "2", status: "in-progress" });
-  //   toDoListStore.add({ listID: "3", status: "complete" });
-  //   toDoListStore.add({ listID: "4", status: "backlog" });
 
-  //   // Using the get method, return an item from your object store.
-  //   const getRequest = toDoListStore.get("1");
-  //   getRequest.onsuccess = () => {
-  //     console.log(getRequest.result);
-  //   };
-
-  //   // Using the getAll method, query by index and return all items.
-  //   const getRequestIdx = statusIndex.getAll("in-progress");
-  //   getRequestIdx.onsuccess = () => {
-  //     console.log(getRequestIdx.result);
-  //   };
+    // expenseStore.getAll().onsuccess = event => {
+    //   console.log(event.target.result);
+    // }
   };
 };

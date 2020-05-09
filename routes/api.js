@@ -4,6 +4,7 @@ const Transaction = require("../models/transaction.js");
 router.post("/api/transaction", ({body}, res) => {
   Transaction.create(body)
     .then(dbTransaction => {
+      console.log("dbTransaction: " + dbTransaction);
       res.json(dbTransaction);
     })
     .catch(err => {

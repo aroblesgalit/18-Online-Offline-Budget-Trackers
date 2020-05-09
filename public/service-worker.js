@@ -86,5 +86,8 @@ self.addEventListener("fetch", function(event) {
                 return response || fetch(event.request);
             });
         })
+        .catch(err => {
+            console.log(err)
+        })
     );
 });
