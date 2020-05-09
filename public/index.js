@@ -66,14 +66,14 @@ function populateChart() {
 
   myChart = new Chart(ctx, {
     type: 'line',
-      data: {
-        labels,
-        datasets: [{
-            label: "Total Over Time",
-            fill: true,
-            backgroundColor: "#6666ff",
-            data
-        }]
+    data: {
+      labels,
+      datasets: [{
+        label: "Total Over Time",
+        fill: true,
+        backgroundColor: "#6666ff",
+        data
+      }]
     }
   });
 }
@@ -111,7 +111,7 @@ function sendTransaction(isAdding) {
   populateChart();
   populateTable();
   populateTotal();
-  
+
   // also send to server
   fetch("/api/transaction", {
     method: "POST",
@@ -121,33 +121,78 @@ function sendTransaction(isAdding) {
       "Content-Type": "application/json"
     }
   })
-  .then(response => {    
-    return response.json();
-  })
-  .then(data => {
-    if (data.errors) {
-      errorEl.textContent = "Missing Information";
-    }
-    else {
+    .then(response => {
+      return response.json();
+    })
+    .then(data => {
+      if (data.errors) {
+        errorEl.textContent = "Missing Information";
+      }
+      else {
+        // clear form
+        nameEl.value = "";
+        amountEl.value = "";
+      }
+    })
+    .catch(_err => {
+      // fetch failed, so save in indexed db
+      saveRecord(transaction);
+
       // clear form
       nameEl.value = "";
       amountEl.value = "";
-    }
-  })
-  .catch(err => {
-    // fetch failed, so save in indexed db
-    saveRecord(transaction);
-
-    // clear form
-    nameEl.value = "";
-    amountEl.value = "";
-  });
+    });
 }
 
-document.querySelector("#add-btn").onclick = function() {
+document.querySelector("#add-btn").onclick = function () {
   sendTransaction(true);
 };
 
-document.querySelector("#sub-btn").onclick = function() {
+document.querySelector("#sub-btn").onclick = function () {
   sendTransaction(false);
+};
+
+function saveRecord(expenseItem) {
+  console.log(expenseItem);
+  const request = window.indexedDB.open("expense", 1);
+      
+  // Create schema
+  request.onupgradeneeded = event => {
+    const db = event.target.result;
+   // CODE HERE
+
+   // Create a expense object store with a listID keyPath that can be used to query on.
+   const expenseStore = db.createObjectStore("expense", {keyPath: "listID"});
+   // Create an index for a "column" you'd like to query on. ie: due-date
+   expenseStore.createIndex("nameIndex", "name");
+   expenseStore.createIndex("valueIndex", "value");
+  }
+
+  // Create variables for a new transaction on your database, objectStore and the index you created.
+  request.onsuccess = () => {
+    const db = request.result;
+    console.log(db);
+    const transaction = db.transaction(["expense"], "readwrite");
+    const expenseStore = transaction.objectStore("expense");
+    const nameIndex = expenseStore.index("nameIndex");
+    const valueIndex = expenseStore.index("valueIndex");
+
+    // Add expense item to our expenseStore
+    expenseStore.add({ listID: expenseItem.date, name: expenseItem.name, value: expenseItem.value });
+  //   toDoListStore.add({ listID: "2", status: "in-progress" });
+  //   toDoListStore.add({ listID: "3", status: "complete" });
+  //   toDoListStore.add({ listID: "4", status: "backlog" });
+
+  //   // Using the get method, return an item from your object store.
+  //   const getRequest = toDoListStore.get("1");
+  //   getRequest.onsuccess = () => {
+  //     console.log(getRequest.result);
+  //   };
+
+  //   // Using the getAll method, query by index and return all items.
+  //   const getRequestIdx = statusIndex.getAll("in-progress");
+  //   getRequestIdx.onsuccess = () => {
+  //     console.log(getRequestIdx.result);
+  //   };
+  };
 };

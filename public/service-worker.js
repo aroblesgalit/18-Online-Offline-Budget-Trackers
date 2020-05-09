@@ -5,10 +5,12 @@ const FILES_TO_CACHE = [
     "/",
     "/index.html",
     "/index.js",
-    // "/manifest.webmanifest",
-    // "/styles.css",
+    "/manifest.webmanifest",
+    "/styles.css",
     "/icons/icon-192x192.png",
-    "/icons/icon-512x512.png"
+    "/icons/icon-512x512.png",
+    "https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css",
+    "https://cdn.jsdelivr.net/npm/chart.js@2.8.0"
 ];
 
 const CACHE_NAME = "my-site-cache-v2";
@@ -48,7 +50,7 @@ self.addEventListener("activate", function(event) {
 self.addEventListener("fetch", function(event) {
     // Handle requests
     // Cache repsonses for requests for data
-    if (event.request.url.includes("/api/")) {
+    if (event.request.url.includes("/api/") && event.request.method === "GET") {
         console.log("[Service Worker] Fetch (data)", event.request.url);
 
         event.respondWith(
@@ -57,7 +59,7 @@ self.addEventListener("fetch", function(event) {
                 return fetch(event.request)
                     .then(response => {
                         if (response.status === 200) {
-                            cache.put(e.request.url, response.clone());
+                            cache.put(event.request.url, response.clone());
                         }
 
                         return response;
